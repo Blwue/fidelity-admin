@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase, loadShopClients, loadShopTransactions, loadShopStats, findClientByQR, addPointsToClient, saveShopSettings, saveShopRewards } from "./supabase";
+import { Html5QrcodeScanner } from "html5-qrcode";
 
 export default function App() {
   const [admin, setAdmin] = useState(null);
@@ -21,6 +22,7 @@ export default function App() {
   const [rewards, setRewards] = useState([]);
   const [showAddReward, setShowAddReward] = useState(false);
   const [newReward, setNewReward] = useState({ type: "fixed", name: "", points: 100, emoji: "🎁", desc: "", value: 10 });
+  const [scannerActive, setScannerActive] = useState(false);
 
   const showNotif = (msg, type = "success") => {
     setNotif({ msg, type });
@@ -43,6 +45,19 @@ export default function App() {
     setRewards(shopData.rewards || []);
     showNotif("Bienvenue !");
   };
+  useEffect(() => {
+  if (!scannerActive) return;
+  const scanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: 250 }, false);
+  scanner.render(
+    (decodedText) => {
+      setQrInput(decodedText);
+      scanner.clear();
+      setScannerActive(false);
+    },
+    (error) => {}
+  );
+  return () => scanner.clear().catch(() => {});
+}, [scannerActive]);
 
   useEffect(() => {
     if (!shop) return;
@@ -207,6 +222,10 @@ export default function App() {
                 <div style={{ fontSize: 16, fontWeight: 700, marginTop: 8 }}>Scanner le QR client</div>
                 <div style={{ fontSize: 13, color: "#555", marginTop: 4 }}>Ou entrez le code manuellement</div>
               </div>
+<button style={s.btn("#1A1A2E")} onClick={() => setScannerActive(!scannerActive)}>
+  {scannerActive ? "⏹ Arrêter la caméra" : "📷 Scanner avec la caméra"}
+</button>
+{scannerActive && <div id="qr-reader" style={{ marginBottom: 12 }}></div>}
               <label style={s.label}>Code QR</label>
               <input style={s.input} value={qrInput} onChange={e => setQrInput(e.target.value)} placeholder="FID-userId-shopId" />
               <button style={s.btn()} onClick={scanQR}>Valider le QR</button>
